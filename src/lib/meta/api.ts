@@ -583,10 +583,22 @@ export class MetaAPI {
 
   // --- Update ---
 
+  /**
+   * Update the status of any Meta Ads object (campaign, ad set, or ad).
+   * The Graph API uses the same POST /{id} endpoint for all three.
+   */
+  async updateStatus(
+    objectId: string,
+    status: "ACTIVE" | "PAUSED" | "ARCHIVED"
+  ): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>(`/${objectId}`, "POST", { status });
+  }
+
+  /** @deprecated Use updateStatus instead */
   async updateAdStatus(
     adId: string,
     status: "ACTIVE" | "PAUSED"
   ): Promise<{ success: boolean }> {
-    return this.request<{ success: boolean }>(`/${adId}`, "POST", { status });
+    return this.updateStatus(adId, status);
   }
 }

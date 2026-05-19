@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "growth-ai": {
+      "command": "node",
+      "args": ["mcp-server.mjs"],
+      "cwd": "/Users/ismail/code/DrIsmailBadrez/growth_ai",
+      "env": {
+        "META_TOKEN": "EAAouxfMtqiYBRSyO8wflAh2GnpZBLWFmNQcuQigqGq0s8XxdZB3MXmuuntejZAV5pHytCaBe9xAgkEuVz3kRJGsrLRo910DtxZAG6r9OV1nqTv6aZCUEy2iZCj2OZCvZB9ZA2uvbCP2b8LGmNCOnxqZBSkd3l0X3pK9KWCE28JEKaPirEl9rXV5ZBYng5OSkm5kLQBQq9pZBNx8JKQRrY8t3bVqbO2NiaiqsvwBYlZCKDKruW1afS988CmOop"
+      }
+    }
+  }
+}

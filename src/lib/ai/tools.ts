@@ -771,6 +771,40 @@ export const getAdInsights = tool({
   },
 });
 
+// --- Status Management ---
+
+export const updateStatus = tool({
+  description:
+    "Activate, pause, or archive a Meta campaign, ad set, or ad. Use this to go live (set ACTIVE) or pause a running campaign. Works on any object ID (campaign, ad set, or ad).",
+  inputSchema: z.object({
+    objectId: z
+      .string()
+      .describe("The ID of the campaign, ad set, or ad to update"),
+    status: z
+      .enum(["ACTIVE", "PAUSED", "ARCHIVED"])
+      .describe("The new status — ACTIVE to go live, PAUSED to stop, ARCHIVED to hide"),
+  }),
+  execute: async ({ objectId, status }) => {
+    const token = await getMetaToken();
+    if (!token) return { type: "error" as const, message: "Meta account not connected." };
+    try {
+      const api = new MetaAPI(token);
+      await api.updateStatus(objectId, status);
+      return {
+        type: "status_updated" as const,
+        objectId,
+        newStatus: status,
+        message: `Successfully set ${objectId} to ${status}`,
+      };
+    } catch (error) {
+      return {
+        type: "error" as const,
+        message: `Failed to update status: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  },
+});
+
 // --- Tool registry ---
 
 export const allTools = {
@@ -794,4 +828,5 @@ export const allTools = {
   getAdSets,
   getAds,
   getAdInsights,
+  updateStatus,
 };
