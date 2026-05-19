@@ -115,6 +115,14 @@ export interface BreadcrumbItem {
   label: string;
 }
 
+export interface CarouselCard {
+  imageHash: string;
+  name: string;
+  description: string;
+  link?: string;
+  callToAction?: string;
+}
+
 export interface MetaApiError {
   error: {
     message: string;

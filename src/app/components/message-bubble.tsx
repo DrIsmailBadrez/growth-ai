@@ -187,16 +187,113 @@ export function MessageBubble({ message }: { message: UIMessage }) {
                 typeof result.url === "string"
               ) {
                 return (
-                  <ImageLightbox
-                    key={i}
-                    src={result.url}
-                    alt="AI-generated ad image"
-                    caption={
-                      typeof result.revisedPrompt === "string"
-                        ? result.revisedPrompt
-                        : undefined
-                    }
-                  />
+                  <div key={i}>
+                    <ImageLightbox
+                      src={result.url}
+                      alt="AI-generated ad image"
+                      caption={
+                        typeof result.revisedPrompt === "string"
+                          ? result.revisedPrompt
+                          : undefined
+                      }
+                    />
+                    {typeof result.model === "string" && (
+                      <p className="mt-1 text-[10px] text-foreground-muted">
+                        Model: {result.model}
+                        {typeof result.aspectRatio === "string" ? ` | ${result.aspectRatio}` : ""}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+
+              // Generated videos — inline player
+              if (
+                toolName === "generateAdVideo" &&
+                result.type === "generated_video" &&
+                typeof result.url === "string"
+              ) {
+                return (
+                  <div key={i} className="mt-2">
+                    <video
+                      src={result.url as string}
+                      controls
+                      autoPlay
+                      muted
+                      loop
+                      className="max-w-full rounded-lg"
+                      style={{ maxHeight: "400px" }}
+                    />
+                    <p className="mt-1 text-[10px] text-foreground-muted">
+                      {result.model as string} | {result.durationSeconds as number}s
+                    </p>
+                  </div>
+                );
+              }
+
+              // Multi-format images — grid
+              if (
+                toolName === "generateMultiFormatImages" &&
+                result.type === "multi_format_images" &&
+                Array.isArray(result.images)
+              ) {
+                const images = result.images as Array<{
+                  url: string;
+                  model: string;
+                  aspectRatio: string;
+                }>;
+                return (
+                  <div key={i} className="mt-2 grid grid-cols-3 gap-2">
+                    {images.map((img, idx) => (
+                      <div key={idx} className="space-y-1">
+                        <ImageLightbox
+                          src={img.url}
+                          alt={`${img.aspectRatio} ad image`}
+                        />
+                        <p className="text-[10px] text-foreground-muted text-center">
+                          {img.aspectRatio}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+
+              // Creative matrix — variant gallery
+              if (
+                toolName === "generateCreativeMatrix" &&
+                result.type === "creative_matrix" &&
+                Array.isArray(result.variants)
+              ) {
+                const variants = result.variants as Array<{
+                  style: string;
+                  image: { url: string; model: string; aspectRatio: string };
+                  video?: { url: string; model: string; durationSeconds: number };
+                }>;
+                return (
+                  <div key={i} className="mt-2 space-y-2">
+                    <p className="text-xs text-foreground-muted">
+                      {result.totalVariants as number} variants generated
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {variants.slice(0, 9).map((v, idx) => (
+                        <div key={idx} className="space-y-1">
+                          <ImageLightbox
+                            src={v.image.url}
+                            alt={`${v.style} — ${v.image.aspectRatio}`}
+                          />
+                          <p className="text-[10px] text-foreground-muted text-center truncate">
+                            {v.style.split(":")[0]}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    {variants.length > 9 && (
+                      <p className="text-[10px] text-foreground-muted">
+                        +{variants.length - 9} more variants
+                      </p>
+                    )}
+                  </div>
                 );
               }
 

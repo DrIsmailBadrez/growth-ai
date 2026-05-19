@@ -7,6 +7,7 @@ import type {
   MetaInsightsFull,
   MetaInsightsTimeSeries,
   InsightParams,
+  CarouselCard,
 } from "./types";
 
 const GRAPH_API_BASE = "https://graph.facebook.com/v21.0";
@@ -578,6 +579,163 @@ export class MetaAPI {
       adset_id: params.adSetId,
       creative: { creative_id: params.creativeId },
       status: params.status,
+    });
+  }
+
+  // --- Video ---
+
+  /**
+   * Upload a video to a Meta ad account.
+   * Uses multipart/form-data with the raw video buffer.
+   * Polls until the video is ready (status: "ready").
+   */
+  async uploadVideo(
+    adAccountId: string,
+    videoBuffer: Buffer,
+    title: string = "Growth AI Video"
+  ): Promise<{ videoId: string }> {
+    const actId = this.normalizeAdAccountId(adAccountId);
+    const url = `${GRAPH_API_BASE}/${actId}/advideos`;
+
+    const formData = new FormData();
+    formData.append("access_token", this.accessToken);
+    formData.append("title", title);
+    formData.append(
+      "source",
+      new Blob([new Uint8Array(videoBuffer)], { type: "video/mp4" }),
+      "video.mp4"
+    );
+
+    log("Uploading video", { adAccountId: actId, size: videoBuffer.length });
+
+    const res = await fetch(url, { method: "POST", body: formData });
+    const data = (await res.json()) as Record<string, unknown>;
+    log("Video upload response", data);
+
+    if (!res.ok || data.error) {
+      const err = data.error as Record<string, unknown> | undefined;
+      throw new Error(
+        `Video upload failed: ${err?.message ?? `HTTP ${res.status}`}`
+      );
+    }
+
+    const videoId = data.id as string;
+    if (!videoId) throw new Error("Video upload returned no ID");
+
+    // Poll until video is ready
+    await this.pollVideoStatus(videoId);
+
+    return { videoId };
+  }
+
+  /**
+   * Poll a video's processing status until it's ready.
+   */
+  private async pollVideoStatus(
+    videoId: string,
+    timeoutMs: number = 120_000
+  ): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 5_000));
+
+      const data = await this.request<{ status: { video_status: string } }>(
+        `/${videoId}?fields=status`
+      );
+
+      const status = data.status?.video_status;
+      log("Video poll", { videoId, status });
+
+      if (status === "ready") return;
+      if (status === "error") {
+        throw new Error(`Video processing failed for ${videoId}`);
+      }
+    }
+    throw new Error(`Video processing timed out for ${videoId}`);
+  }
+
+  /**
+   * Create a video ad creative.
+   */
+  async createVideoAdCreative(
+    adAccountId: string,
+    params: {
+      name: string;
+      pageId: string;
+      videoId: string;
+      primaryText: string;
+      headline: string;
+      description: string;
+      callToAction: string;
+      linkUrl: string;
+      thumbnailUrl?: string;
+      thumbnailHash?: string;
+    }
+  ): Promise<{ id: string }> {
+    const actId = this.normalizeAdAccountId(adAccountId);
+
+    // Build thumbnail field: prefer image_hash (uploaded), fall back to image_url (public URL)
+    const thumbnailField = params.thumbnailHash
+      ? { image_hash: params.thumbnailHash }
+      : params.thumbnailUrl
+        ? { image_url: params.thumbnailUrl }
+        : {};
+
+    return this.request<{ id: string }>(`/${actId}/adcreatives`, "POST", {
+      name: params.name,
+      object_story_spec: {
+        page_id: params.pageId,
+        video_data: {
+          video_id: params.videoId,
+          message: params.primaryText,
+          title: params.headline,
+          link_description: params.description,
+          call_to_action: {
+            type: params.callToAction,
+            value: { link: params.linkUrl },
+          },
+          ...thumbnailField,
+        },
+      },
+    });
+  }
+
+  /**
+   * Create a carousel ad creative with multiple cards.
+   */
+  async createCarouselAdCreative(
+    adAccountId: string,
+    params: {
+      name: string;
+      pageId: string;
+      primaryText: string;
+      linkUrl: string;
+      cards: CarouselCard[];
+    }
+  ): Promise<{ id: string }> {
+    const actId = this.normalizeAdAccountId(adAccountId);
+
+    const childAttachments = params.cards.map((card) => ({
+      image_hash: card.imageHash,
+      name: card.name,
+      description: card.description,
+      link: card.link ?? params.linkUrl,
+      call_to_action: {
+        type: card.callToAction ?? "LEARN_MORE",
+        value: { link: card.link ?? params.linkUrl },
+      },
+    }));
+
+    return this.request<{ id: string }>(`/${actId}/adcreatives`, "POST", {
+      name: params.name,
+      object_story_spec: {
+        page_id: params.pageId,
+        link_data: {
+          message: params.primaryText,
+          link: params.linkUrl,
+          child_attachments: childAttachments,
+        },
+      },
     });
   }
 

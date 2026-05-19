@@ -117,6 +117,41 @@ export const TOOL_DISPLAY: Record<string, ToolDisplayInfo> = {
       "M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5",
     iconColor: "text-emerald-400",
   },
+  generateAdVideo: {
+    label: "Generated ad video",
+    loadingText: "Creating video",
+    iconPath:
+      "M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z",
+    iconColor: "text-rose-400",
+  },
+  generateMultiFormatImages: {
+    label: "Generated multi-format images",
+    loadingText: "Creating all formats",
+    iconPath:
+      "M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z",
+    iconColor: "text-pink-400",
+  },
+  createVideoAdCreative: {
+    label: "Created video ad creative",
+    loadingText: "Creating video creative",
+    iconPath:
+      "M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z",
+    iconColor: "text-emerald-400",
+  },
+  createCarouselAdCreative: {
+    label: "Created carousel ad creative",
+    loadingText: "Creating carousel creative",
+    iconPath:
+      "M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L12 12.75l-5.571-3m11.142 0l4.179 2.25L12 17.25l-9.75-5.25 4.179-2.25",
+    iconColor: "text-emerald-400",
+  },
+  generateCreativeMatrix: {
+    label: "Generated creative matrix",
+    loadingText: "Generating variant matrix",
+    iconPath:
+      "M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z",
+    iconColor: "text-orange-400",
+  },
   searchInterests: {
     label: "Searched targeting interests",
     loadingText: "Searching interests",

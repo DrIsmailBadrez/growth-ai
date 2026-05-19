@@ -16,6 +16,10 @@ const STATUS_COLORS: Record<string, string> = {
   adset_created: "border-emerald-500/20 bg-emerald-500/10",
   creative_created: "border-emerald-500/20 bg-emerald-500/10",
   ad_created: "border-emerald-500/20 bg-emerald-500/10",
+  generated_video: "border-rose-500/20 bg-rose-500/10",
+  multi_format_images: "border-pink-500/20 bg-pink-500/10",
+  creative_matrix: "border-orange-500/20 bg-orange-500/10",
+  status_updated: "border-emerald-500/20 bg-emerald-500/10",
   pages: "border-blue-500/20 bg-blue-500/5",
   pixels: "border-violet-500/20 bg-violet-500/5",
   pixel_created: "border-emerald-500/20 bg-emerald-500/10",
@@ -255,6 +259,38 @@ function renderBody(
           </details>
         )}
       </div>
+    );
+  }
+
+  if (type === "creative_matrix") {
+    const totalVariants = result.totalVariants as number;
+    const variants = result.variants as Array<{
+      style: string;
+      image: { model: string; aspectRatio: string };
+      video?: { model: string; durationSeconds: number };
+    }>;
+    const models = [...new Set(variants.map((v) => v.image.model))];
+    const ratios = [...new Set(variants.map((v) => v.image.aspectRatio))];
+    const styles = [...new Set(variants.map((v) => v.style))];
+    const videoCount = variants.filter((v) => v.video).length;
+
+    return (
+      <div className="space-y-1 text-foreground-muted">
+        <p>
+          <span className="text-foreground font-medium">{totalVariants}</span>{" "}
+          variants generated
+        </p>
+        <p>Styles: {styles.join(", ")}</p>
+        <p>Models: {models.join(", ")}</p>
+        <p>Ratios: {ratios.join(", ")}</p>
+        {videoCount > 0 && <p>Videos: {videoCount}</p>}
+      </div>
+    );
+  }
+
+  if (type === "status_updated") {
+    return (
+      <p className="text-emerald-400">{result.message as string}</p>
     );
   }
 

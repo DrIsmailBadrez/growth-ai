@@ -3,7 +3,7 @@ import { model } from "@/lib/ai/model";
 import { systemPrompt } from "@/lib/ai/system-prompt";
 import { allTools } from "@/lib/ai/tools";
 
-export const maxDuration = 120;
+export const maxDuration = 600; // 10 minutes — video generation can take 3-5 min
 
 export async function POST(req: Request) {
   try {

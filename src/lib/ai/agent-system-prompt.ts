@@ -50,8 +50,8 @@ You are being called programmatically by another AI agent, not a human in a chat
 ## NO META TOKEN PROVIDED
 
 No Meta access token was provided for this request. You MUST NOT call any Meta API tools:
-- Do NOT call: checkMetaConnection, getAdAccounts, getPages, getPixels, createPixel, searchInterests, createCampaign, createAdSet, createAdCreative, createAd, getCampaigns, getAdSets, getAds, getAdInsights, updateStatus, disconnectMeta
-- You CAN still use: webSearch, scrapeWebpage, suggestTargeting, generateAdCopy, generateAdImage
+- Do NOT call: checkMetaConnection, getAdAccounts, getPages, getPixels, createPixel, searchInterests, createCampaign, createAdSet, createAdCreative, createVideoAdCreative, createCarouselAdCreative, createAd, getCampaigns, getAdSets, getAds, getAdInsights, updateStatus, disconnectMeta
+- You CAN still use: webSearch, scrapeWebpage, suggestTargeting, generateAdCopy, generateAdImage, generateAdVideo, generateMultiFormatImages, generateCreativeMatrix
 - If the user's request requires Meta API access, explain that a metaToken must be provided in the request`);
   }
 

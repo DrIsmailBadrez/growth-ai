@@ -1,9 +1,19 @@
 import { tool } from "ai";
 import { z } from "zod";
-import { generateImage } from "./creative";
+import {
+  generateImageMultiModel,
+  generateMultiFormat,
+  generateVideo,
+  generateTextToVideo,
+  generateCreativeMatrix,
+} from "./creative";
+import { getCachedAsset } from "./asset-cache";
+import { buildPrompt, buildVideoPrompt, getAvailableStyles } from "./prompt-engine";
 import { searchWeb, scrapeUrl } from "./web-search";
 import { getMetaToken, clearMetaToken } from "@/lib/session";
 import { MetaAPI } from "@/lib/meta/api";
+import type { ImageModel, VideoModel, AspectRatio } from "./creative-types";
+import { selectModel } from "./model-router";
 
 // --- Web Research Tools ---
 
@@ -157,38 +167,101 @@ export const generateAdCopy = tool({
 
 export const generateAdImage = tool({
   description:
-    "Generate an ad image using GPT Image. Creates a scroll-stopping ad visual optimized for Meta feeds. Describe exactly what you want — the prompt is sent directly to the image model.",
+    "Generate an ad image using AI. Creates a scroll-stopping ad visual optimized for Meta feeds. " +
+    "Supports multiple image models: flux-2-pro (default, best quality), imagen-4-ultra (photorealism), ideogram-3 (text in image), gpt-image-1 (fallback). " +
+    "Use built-in style keys for maximum creative diversity: hero-lifestyle, product-studio, ugc-authentic, bold-graphic, before-after, macro-texture. " +
+    "Or pass a custom style description.",
   inputSchema: z.object({
-    product: z.string().describe("The product or service to visualize"),
+    product: z.string().describe(
+      "A VISUAL DESCRIPTION of the product — NOT just the brand name. " +
+      "The image model has zero context about what the product is. " +
+      "GOOD: 'Societiz — a mobile app for creator communities, showing a sleek dashboard on a phone screen with member avatars and engagement metrics'. " +
+      "BAD: 'Societiz'. " +
+      "Include: what it looks like physically, what category it's in, key visual elements."
+    ),
     style: z
       .string()
       .optional()
       .describe(
-        "Visual style (e.g., 'lifestyle photo of a person using the product in a bright kitchen', 'flat-lay product shot on marble surface', 'close-up macro shot with bokeh background')"
+        "Built-in style key (hero-lifestyle, product-studio, ugc-authentic, bold-graphic, before-after, macro-texture) " +
+        "OR a custom style description (e.g., 'editorial fashion shot in a white loft space'). " +
+        "Built-in styles enforce conflicting composition constraints for genuine diversity."
       ),
     mood: z
       .string()
       .optional()
-      .describe("The emotional mood (e.g., warm and inviting, bold and energetic, calm and premium)"),
-    aspectRatio: z
-      .enum(["square", "landscape"])
+      .describe("Override the emotional mood (e.g., 'bold and energetic', 'calm and premium', 'raw and gritty')"),
+    targetEmotion: z
+      .string()
       .optional()
-      .describe("Image aspect ratio: square (1024x1024, best for feed) or landscape (1536x1024, best for stories)"),
+      .describe("What should the viewer FEEL? (e.g., 'desire', 'FOMO', 'relief', 'curiosity', 'belonging')"),
+    hero: z
+      .enum(["product", "person", "transformation", "problem"])
+      .optional()
+      .describe("Who/what is the hero of this image? product = the object itself, person = human using it, transformation = the result, problem = the pain point"),
+    aspectRatio: z
+      .enum(["1:1", "4:5", "9:16"])
+      .optional()
+      .describe("'1:1' square (feed default), '4:5' portrait (feed, highest real estate), '9:16' vertical (stories/reels)"),
+    model: z
+      .enum(["gpt-image-1", "flux-2-pro", "ideogram-3", "imagen-4-ultra"])
+      .optional()
+      .describe("Image model. Default: auto-selected based on context"),
+    needsTextInImage: z
+      .boolean()
+      .optional()
+      .describe("Set true if the image needs readable text/typography — selects Ideogram 3"),
+    needsPhotorealism: z
+      .boolean()
+      .optional()
+      .describe("Set true for ultra-realistic photography — selects Imagen 4 Ultra"),
+    isProductShot: z
+      .boolean()
+      .optional()
+      .describe("Set true for clean product shots — selects FLUX 2 Pro"),
   }),
-  execute: async ({ product, style, mood, aspectRatio }) => {
-    const imageStyle = style ?? "lifestyle product photography with a real human interacting with the product";
-    const imageMood = mood ?? "warm, inviting, aspirational";
-    const prompt = `${imageStyle}: ${product}. Mood: ${imageMood}. Shot on a high-end camera with natural lighting, shallow depth of field. Single clear focal point, high contrast between subject and background. The image should stop someone mid-scroll — visually striking and emotionally compelling. Absolutely NO text, words, letters, logos, or watermarks anywhere in the image. Clean composition, modern aesthetic.`;
-    const size = aspectRatio === "landscape" ? "1536x1024" : "1024x1024";
-
+  execute: async ({ product, style, mood, targetEmotion, hero, aspectRatio, model, needsTextInImage, needsPhotorealism, isProductShot }) => {
     try {
-      const result = await generateImage(prompt, size);
+      const ratio: AspectRatio = aspectRatio ?? "1:1";
+
+      console.log("[generateAdImage] === TOOL EXECUTE START ===");
+      console.log(`[generateAdImage]   Inputs: product=${product}, style=${style}, mood=${mood}, model=${model}, ratio=${ratio}`);
+      console.log(`[generateAdImage]   Flags: needsTextInImage=${needsTextInImage}, needsPhotorealism=${needsPhotorealism}, isProductShot=${isProductShot}`);
+
+      // Select the best available model via the model router
+      const selectedModel: ImageModel = selectModel({
+        requestedModel: model as ImageModel | undefined,
+        needsTextInImage,
+        needsPhotorealism,
+        isProductShot,
+      });
+      console.log(`[generateAdImage]   selectModel returned: ${selectedModel}`);
+
+      // Build a model-optimized prompt via the prompt engine
+      const prompt = buildPrompt(
+        { product, style, mood, targetEmotion, hero },
+        selectedModel,
+        ratio
+      );
+      console.log(`[generateAdImage]   buildPrompt returned (first 150 chars): ${prompt.slice(0, 150)}...`);
+
+      console.log(`[generateAdImage]   Calling generateImageMultiModel with requestedModel=${model}`);
+      const result = await generateImageMultiModel(prompt, ratio, {
+        requestedModel: model as ImageModel | undefined,
+        needsTextInImage,
+        needsPhotorealism,
+        isProductShot,
+      });
+      console.log(`[generateAdImage]   Result: model=${result.model}, url=${result.url}`);
+
       return {
         type: "generated_image" as const,
         url: result.url,
         localPath: result.localPath,
-        revisedPrompt: result.revisedPrompt,
+        revisedPrompt: result.revisedPrompt ?? prompt,
         originalPrompt: prompt,
+        model: result.model,
+        aspectRatio: result.aspectRatio,
       };
     } catch (error) {
       return {
@@ -805,6 +878,439 @@ export const updateStatus = tool({
   },
 });
 
+// --- Multi-Model Creative Tools (work without Meta account) ---
+
+export const generateAdVideo = tool({
+  description:
+    "Generate a short ad video using AI (Kling v3). Two modes: " +
+    "(1) TEXT-TO-VIDEO (preferred): describe the scene — faster, more dynamic, no hero image needed. " +
+    "(2) IMAGE-TO-VIDEO (fallback): animate an existing hero image from generateAdImage. " +
+    "Creates 5-10s videos optimized for Meta Reels/Stories.",
+  inputSchema: z.object({
+    product: z.string().describe(
+      "A VISUAL DESCRIPTION of the product — NOT just the brand name. " +
+      "Include what it looks like, what category, key visual elements. " +
+      "Example: 'Societiz — a mobile app showing a sleek community dashboard with member avatars and engagement metrics'"
+    ),
+    scene: z.string().describe(
+      "The SCENE to depict — describe it like a film director. " +
+      "GOOD: 'A creator in a sunlit home studio picks up their phone, the screen glows with notifications. " +
+      "They smile, tap the screen, and a cascade of member avatars animates across the display. " +
+      "Camera slowly dollies in toward the phone screen.' " +
+      "BAD: 'person using app'. " +
+      "Include: setting, action, what changes during the clip, camera movement."
+    ),
+    mood: z
+      .string()
+      .optional()
+      .describe("Emotional tone (e.g., 'warm and aspirational', 'bold and energetic', 'intimate and authentic')"),
+    targetEmotion: z
+      .string()
+      .optional()
+      .describe("What the viewer should FEEL (e.g., 'desire', 'FOMO', 'belonging', 'curiosity')"),
+    cameraMove: z
+      .string()
+      .optional()
+      .describe(
+        "Camera movement — each tells a different story. " +
+        "Dolly in = drawing viewer closer (intimacy). " +
+        "Crane up = reveal/aspiration. " +
+        "Orbit = showcasing product from all angles. " +
+        "Handheld = authenticity/UGC feel. " +
+        "Tracking shot = following action/energy."
+      ),
+    aspectRatio: z
+      .enum(["9:16", "16:9", "1:1"])
+      .optional()
+      .describe("'9:16' vertical for Reels/Stories (default), '16:9' landscape for feed/in-stream, '1:1' square for feed"),
+    durationSeconds: z
+      .number()
+      .optional()
+      .describe("Video duration in seconds (default 5, max 10). 5s for hooks, 8-10s for story ads."),
+    model: z
+      .enum(["kling-3", "runway-gen4"])
+      .optional()
+      .describe("Video model. Default: kling-3 (text-to-video). runway-gen4 is image-to-video only."),
+    imageLocalPath: z
+      .string()
+      .optional()
+      .describe("Optional: local path from generateAdImage to use image-to-video mode instead of text-to-video"),
+  }),
+  execute: async ({ product, scene, mood, targetEmotion, cameraMove, aspectRatio, durationSeconds, model, imageLocalPath }) => {
+    try {
+      const duration = durationSeconds ?? 5;
+      const ar = aspectRatio ?? "9:16";
+
+      // If an image path is provided, use image-to-video (legacy mode)
+      if (imageLocalPath) {
+        const motionPrompt = `${scene}. ${cameraMove ?? "Slow cinematic dolly-in."}`;
+        const result = await generateVideo(
+          imageLocalPath,
+          motionPrompt,
+          model as VideoModel | undefined,
+          duration
+        );
+        return {
+          type: "generated_video" as const,
+          url: result.url,
+          localPath: result.localPath,
+          model: result.model,
+          durationSeconds: result.durationSeconds,
+        };
+      }
+
+      // Text-to-video — build a cinematic prompt via the prompt engine
+      const prompt = buildVideoPrompt({
+        product,
+        scene,
+        mood,
+        targetEmotion,
+        cameraMove,
+        aspectRatio: ar,
+      });
+
+      const result = await generateTextToVideo(
+        prompt,
+        ar,
+        model as VideoModel | undefined,
+        duration
+      );
+
+      return {
+        type: "generated_video" as const,
+        url: result.url,
+        localPath: result.localPath,
+        model: result.model,
+        durationSeconds: result.durationSeconds,
+      };
+    } catch (error) {
+      return {
+        type: "error" as const,
+        message: `Video generation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  },
+});
+
+export const generateMultiFormatImages = tool({
+  description:
+    "Generate an ad image in all 3 Meta aspect ratios at once: 1:1 (feed), 4:5 (feed portrait), 9:16 (stories/reels). Returns 3 images ready for different placements. " +
+    "Uses the prompt engine for model-optimized prompts.",
+  inputSchema: z.object({
+    product: z.string().describe(
+      "A VISUAL DESCRIPTION of the product — NOT just the brand name. " +
+      "The image model has zero context about what the product is. " +
+      "GOOD: 'Societiz — a mobile app for creator communities, showing a sleek dashboard on a phone screen with member avatars and engagement metrics'. " +
+      "BAD: 'Societiz'. " +
+      "Include: what it looks like physically, what category it's in, key visual elements."
+    ),
+    style: z
+      .string()
+      .optional()
+      .describe("Built-in style key (hero-lifestyle, product-studio, ugc-authentic, bold-graphic, before-after, macro-texture) or custom description"),
+    mood: z
+      .string()
+      .optional()
+      .describe("Emotional mood override"),
+    targetEmotion: z
+      .string()
+      .optional()
+      .describe("What the viewer should feel"),
+    hero: z
+      .enum(["product", "person", "transformation", "problem"])
+      .optional()
+      .describe("Who/what is the hero of this image?"),
+    model: z
+      .enum(["gpt-image-1", "flux-2-pro", "ideogram-3", "imagen-4-ultra"])
+      .optional()
+      .describe("Image model. Default: auto-selected"),
+  }),
+  execute: async ({ product, style, mood, targetEmotion, hero, model }) => {
+    try {
+      // Build prompt via the prompt engine (will be rewritten for model inside generateMultiFormat)
+      const selectedModel: ImageModel = selectModel({
+        requestedModel: model as ImageModel | undefined,
+      });
+      const prompt = buildPrompt(
+        { product, style, mood, targetEmotion, hero },
+        selectedModel,
+        "1:1" // base ratio — generateMultiFormat will run all 3
+      );
+
+      const images = await generateMultiFormat(prompt, {
+        requestedModel: model as ImageModel | undefined,
+      });
+      return {
+        type: "multi_format_images" as const,
+        images: images.map((img) => ({
+          url: img.url,
+          localPath: img.localPath,
+          model: img.model,
+          aspectRatio: img.aspectRatio,
+        })),
+      };
+    } catch (error) {
+      return {
+        type: "error" as const,
+        message: `Multi-format generation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  },
+});
+
+export const createVideoAdCreativeTool = tool({
+  description:
+    "Create a Meta video ad creative. Uploads the video to Meta and creates the creative with copy. Requires a video from generateAdVideo.",
+  inputSchema: z.object({
+    adAccountId: z.string().describe("The ad account ID"),
+    name: z.string().describe("Creative name"),
+    pageId: z.string().describe("Facebook Page ID"),
+    videoLocalPath: z
+      .string()
+      .describe("Local file path of the video (from generateAdVideo result's localPath)"),
+    thumbnailImageUrl: z
+      .string()
+      .optional()
+      .describe("URL of the thumbnail image (from generateAdImage result's url field)"),
+    thumbnailImageLocalPath: z
+      .string()
+      .optional()
+      .describe("Local cache path of the thumbnail (from generateAdImage result's localPath field). Preferred — avoids expired URL issues."),
+    primaryText: z.string().describe("Primary text (main message)"),
+    headline: z.string().describe("Headline text"),
+    description: z.string().describe("Description text"),
+    callToAction: z
+      .enum(["SHOP_NOW", "LEARN_MORE", "SIGN_UP", "BOOK_NOW", "CONTACT_US", "GET_OFFER", "SUBSCRIBE", "DOWNLOAD", "GET_QUOTE", "APPLY_NOW", "ORDER_NOW", "SEND_MESSAGE", "WHATSAPP_MESSAGE"])
+      .describe("Call-to-action button type"),
+    linkUrl: z.string().describe("Destination URL when ad is clicked"),
+  }),
+  execute: async ({
+    adAccountId,
+    name,
+    pageId,
+    videoLocalPath,
+    thumbnailImageUrl,
+    thumbnailImageLocalPath,
+    primaryText,
+    headline,
+    description,
+    callToAction,
+    linkUrl,
+  }) => {
+    const token = await getMetaToken();
+    if (!token) return { type: "error" as const, message: "Meta account not connected." };
+    try {
+      const api = new MetaAPI(token);
+
+      // Read cached video
+      const videoBuffer = getCachedAsset(videoLocalPath);
+      if (!videoBuffer) {
+        return {
+          type: "error" as const,
+          message: `Video not found at ${videoLocalPath}. Generate a video first with generateAdVideo.`,
+        };
+      }
+
+      // Upload video to Meta
+      const { videoId } = await api.uploadVideo(adAccountId, videoBuffer, name);
+
+      // Upload thumbnail image to Meta if provided (converts local path → image_hash)
+      let thumbnailHash: string | undefined;
+      if (thumbnailImageUrl || thumbnailImageLocalPath) {
+        try {
+          thumbnailHash = await api.uploadImageFromUrl(
+            adAccountId,
+            thumbnailImageUrl ?? "",
+            thumbnailImageLocalPath ?? thumbnailImageUrl
+          );
+          console.log(`[createVideoAdCreative] Thumbnail uploaded, hash: ${thumbnailHash}`);
+        } catch (err) {
+          // Non-fatal — Meta will auto-generate a thumbnail from the video
+          console.warn(`[createVideoAdCreative] Thumbnail upload failed, skipping: ${err}`);
+        }
+      }
+
+      // Create video creative
+      const result = await api.createVideoAdCreative(adAccountId, {
+        name,
+        pageId,
+        videoId,
+        primaryText,
+        headline,
+        description,
+        callToAction,
+        linkUrl,
+        thumbnailHash,
+      });
+
+      return { type: "creative_created" as const, ...result };
+    } catch (error) {
+      return {
+        type: "error" as const,
+        message: `Failed to create video ad creative: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  },
+});
+
+export const createCarouselAdCreativeTool = tool({
+  description:
+    "Create a Meta carousel ad creative with 2-10 cards. Each card has an image, headline, description, and optional link. Images are automatically uploaded to Meta.",
+  inputSchema: z.object({
+    adAccountId: z.string().describe("The ad account ID"),
+    name: z.string().describe("Creative name"),
+    pageId: z.string().describe("Facebook Page ID"),
+    primaryText: z.string().describe("Primary text shown above the carousel"),
+    linkUrl: z.string().describe("Default destination URL"),
+    cards: z
+      .array(
+        z.object({
+          imageUrl: z.string().describe("Image URL for this card"),
+          imageLocalPath: z
+            .string()
+            .optional()
+            .describe("Local cache path from generateAdImage (preferred over imageUrl)"),
+          headline: z.string().describe("Card headline"),
+          description: z.string().describe("Card description"),
+          linkUrl: z.string().optional().describe("Card-specific destination URL"),
+          callToAction: z
+            .enum(["SHOP_NOW", "LEARN_MORE", "SIGN_UP", "BOOK_NOW", "CONTACT_US", "GET_OFFER", "SUBSCRIBE"])
+            .optional()
+            .describe("Card CTA (default: LEARN_MORE)"),
+        })
+      )
+      .min(2)
+      .max(10)
+      .describe("Carousel cards (2-10)"),
+  }),
+  execute: async ({ adAccountId, name, pageId, primaryText, linkUrl, cards }) => {
+    const token = await getMetaToken();
+    if (!token) return { type: "error" as const, message: "Meta account not connected." };
+    try {
+      const api = new MetaAPI(token);
+
+      // Upload each card's image and collect hashes
+      const carouselCards = [];
+      for (const card of cards) {
+        const imageHash = await api.uploadImageFromUrl(
+          adAccountId,
+          card.imageUrl,
+          card.imageLocalPath
+        );
+        carouselCards.push({
+          imageHash,
+          name: card.headline,
+          description: card.description,
+          link: card.linkUrl,
+          callToAction: card.callToAction,
+        });
+      }
+
+      const result = await api.createCarouselAdCreative(adAccountId, {
+        name,
+        pageId,
+        primaryText,
+        linkUrl,
+        cards: carouselCards,
+      });
+
+      return { type: "creative_created" as const, ...result };
+    } catch (error) {
+      return {
+        type: "error" as const,
+        message: `Failed to create carousel creative: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  },
+});
+
+export const generateCreativeMatrixTool = tool({
+  description:
+    "Generate a matrix of creative variants across multiple styles, models, and aspect ratios. " +
+    "Perfect for Advantage+ campaigns — each style uses CONFLICTING composition constraints " +
+    "so Meta's Andromeda treats them as genuinely distinct ads, not duplicates. " +
+    "Built-in styles: hero-lifestyle, product-studio, ugc-authentic, bold-graphic, before-after, macro-texture. " +
+    "Each style forces different lighting, camera angle, color palette, and focal point — impossible to produce similar images.",
+  inputSchema: z.object({
+    product: z.string().describe(
+      "A VISUAL DESCRIPTION of the product — NOT just the brand name. " +
+      "The image model has zero context about what the product is. " +
+      "GOOD: 'Societiz — a mobile app for creator communities, showing a sleek dashboard on a phone screen with member avatars and engagement metrics'. " +
+      "BAD: 'Societiz'. " +
+      "Include: what it looks like physically, what category it's in, key visual elements."
+    ),
+    styles: z
+      .array(z.string())
+      .min(1)
+      .max(5)
+      .describe(
+        "Use built-in style KEYS for maximum diversity: " +
+        "'hero-lifestyle' (environmental, golden hour, person-centric), " +
+        "'product-studio' (tight studio shot, hard directional light, product hero), " +
+        "'ugc-authentic' (selfie-style, phone camera, imperfect, real-world), " +
+        "'bold-graphic' (flat-lay, color blocking, high saturation, pop art), " +
+        "'before-after' (split composition, transformation story, color shift), " +
+        "'macro-texture' (extreme close-up, surface detail, tactile). " +
+        "Custom style descriptions also accepted."
+      ),
+    models: z
+      .array(z.enum(["gpt-image-1", "flux-2-pro", "ideogram-3", "imagen-4-ultra"]))
+      .optional()
+      .describe("Image models. Default: best available. Each model receives prompts rewritten in its native language."),
+    aspectRatios: z
+      .array(z.enum(["1:1", "4:5", "9:16"]))
+      .optional()
+      .describe("Aspect ratios. Default: all three"),
+    includeVideo: z
+      .boolean()
+      .optional()
+      .describe("Generate video for each style's vertical images (9:16 and 4:5). Each style gets its own motion — not one generic pan."),
+    videoMotionPrompt: z
+      .string()
+      .optional()
+      .describe("Fallback motion prompt for custom styles (built-in styles have their own motion)"),
+  }),
+  execute: async ({ product, styles, models, aspectRatios, includeVideo, videoMotionPrompt }) => {
+    try {
+      const matrix = await generateCreativeMatrix(
+        product,
+        styles,
+        models as ImageModel[] | undefined,
+        aspectRatios as AspectRatio[] | undefined,
+        includeVideo,
+        videoMotionPrompt
+      );
+
+      return {
+        type: "creative_matrix" as const,
+        totalVariants: matrix.totalVariants,
+        variants: matrix.variants.map((v) => ({
+          style: v.style,
+          image: {
+            url: v.image.url,
+            localPath: v.image.localPath,
+            model: v.image.model,
+            aspectRatio: v.image.aspectRatio,
+          },
+          ...(v.video && {
+            video: {
+              url: v.video.url,
+              localPath: v.video.localPath,
+              model: v.video.model,
+              durationSeconds: v.video.durationSeconds,
+            },
+          }),
+        })),
+      };
+    } catch (error) {
+      return {
+        type: "error" as const,
+        message: `Creative matrix generation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  },
+});
+
 // --- Tool registry ---
 
 export const allTools = {
@@ -813,6 +1319,9 @@ export const allTools = {
   suggestTargeting,
   generateAdCopy,
   generateAdImage,
+  generateAdVideo,
+  generateMultiFormatImages,
+  generateCreativeMatrix: generateCreativeMatrixTool,
   checkMetaConnection,
   disconnectMeta,
   getPages,
@@ -823,6 +1332,8 @@ export const allTools = {
   createCampaign,
   createAdSet,
   createAdCreative,
+  createVideoAdCreative: createVideoAdCreativeTool,
+  createCarouselAdCreative: createCarouselAdCreativeTool,
   createAd,
   getCampaigns,
   getAdSets,
