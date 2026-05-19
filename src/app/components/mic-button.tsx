@@ -93,17 +93,17 @@ export function MicButton({ onTranscript, onStateChange, disabled }: MicButtonPr
             ? "Transcribing..."
             : "Voice input"
       }
-      className={`glass rounded-lg px-3 py-3 transition-all duration-200 focus-glow ${
+      className={`shrink-0 rounded-md p-1.5 transition-colors ${
         state === "recording"
-          ? "text-red-400 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.4)]"
+          ? "text-red-500 bg-red-50 animate-pulse"
           : state === "transcribing"
-            ? "text-violet-400 cursor-wait"
-            : "text-foreground-muted hover:text-foreground hover:bg-white/5"
+            ? "text-foreground-muted cursor-wait"
+            : "text-foreground-muted hover:bg-hover hover:text-foreground"
       }`}
     >
       {state === "transcribing" ? (
         <svg
-          className="h-5 w-5 animate-spin"
+          className="h-4 w-4 animate-spin"
           fill="none"
           viewBox="0 0 24 24"
         >
@@ -123,11 +123,11 @@ export function MicButton({ onTranscript, onStateChange, disabled }: MicButtonPr
         </svg>
       ) : (
         <svg
-          className="h-5 w-5"
+          className="h-4 w-4"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
-          strokeWidth={2}
+          strokeWidth={1.75}
         >
           <path
             strokeLinecap="round"

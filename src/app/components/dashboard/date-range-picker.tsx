@@ -8,27 +8,27 @@ interface DateRangePickerProps {
 }
 
 const PRESETS: { value: DatePreset; label: string }[] = [
-  { value: "today", label: "Today" },
-  { value: "yesterday", label: "Yesterday" },
-  { value: "last_7d", label: "7 Days" },
-  { value: "last_14d", label: "14 Days" },
-  { value: "last_30d", label: "30 Days" },
-  { value: "last_90d", label: "90 Days" },
-  { value: "this_month", label: "This Month" },
-  { value: "last_month", label: "Last Month" },
+  { value: "today",      label: "Today" },
+  { value: "yesterday",  label: "Yesterday" },
+  { value: "last_7d",    label: "7 days" },
+  { value: "last_14d",   label: "14 days" },
+  { value: "last_30d",   label: "30 days" },
+  { value: "last_90d",   label: "90 days" },
+  { value: "this_month", label: "This month" },
+  { value: "last_month", label: "Last month" },
 ];
 
 export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   return (
-    <div className="flex items-center gap-1 overflow-x-auto">
+    <div className="flex items-center gap-0.5 overflow-x-auto rounded-lg border border-border bg-background-secondary p-0.5">
       {PRESETS.map((preset) => (
         <button
           key={preset.value}
           onClick={() => onChange(preset.value)}
-          className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          className={`shrink-0 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
             value === preset.value
-              ? "bg-accent-violet/20 text-violet-300 ring-1 ring-violet-500/30"
-              : "text-foreground-muted hover:text-foreground hover:bg-white/[0.04]"
+              ? "bg-foreground text-background"
+              : "text-foreground-secondary hover:bg-hover hover:text-foreground"
           }`}
         >
           {preset.label}

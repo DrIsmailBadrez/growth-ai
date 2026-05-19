@@ -2,7 +2,7 @@
 
 function Skeleton({ className = "" }: { className?: string }) {
   return (
-    <div className={`rounded-lg bg-white/[0.03] border border-white/5 animate-pulse ${className}`} />
+    <div className={`rounded-xl border border-border bg-hover animate-pulse ${className}`} />
   );
 }
 
@@ -17,15 +17,15 @@ export function MetricsGridSkeleton() {
 }
 
 export function ChartSkeleton() {
-  return <Skeleton className="h-[300px]" />;
+  return <Skeleton className="h-[280px]" />;
 }
 
 export function TableSkeleton() {
   return (
-    <div className="space-y-2">
-      <Skeleton className="h-10" />
+    <div className="card rounded-xl overflow-hidden">
+      <div className="h-10 border-b border-border bg-hover" />
       {Array.from({ length: 5 }).map((_, i) => (
-        <Skeleton key={i} className="h-14" />
+        <div key={i} className={`h-14 border-b border-border last:border-0 animate-pulse ${i % 2 === 0 ? "bg-background-secondary" : "bg-background"}`} />
       ))}
     </div>
   );
@@ -33,7 +33,7 @@ export function TableSkeleton() {
 
 export function DashboardSkeleton() {
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-5">
       <MetricsGridSkeleton />
       <ChartSkeleton />
       <TableSkeleton />

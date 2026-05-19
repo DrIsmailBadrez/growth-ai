@@ -28,7 +28,7 @@ export function ImageLightbox({ src, alt, caption }: ImageLightboxProps) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group mt-3 block cursor-zoom-in overflow-hidden rounded-lg border border-white/[0.08] transition-all hover:border-violet-500/40 hover:shadow-lg hover:shadow-violet-500/10"
+        className="group mt-3 block cursor-zoom-in overflow-hidden rounded-xl border border-border transition-all hover:border-border-hover hover:shadow-md"
       >
         <img
           src={src}

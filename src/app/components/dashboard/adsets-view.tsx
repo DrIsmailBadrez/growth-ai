@@ -56,8 +56,8 @@ export function AdSetsView({ campaignId, datePreset, onSelectAdSet }: AdSetsView
 
   if (error) {
     return (
-      <div className="glass rounded-xl p-8 text-center">
-        <p className="text-red-400 text-sm">{error}</p>
+      <div className="card rounded-xl p-8 text-center">
+        <p className="text-error text-sm">{error}</p>
       </div>
     );
   }

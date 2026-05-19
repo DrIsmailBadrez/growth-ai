@@ -31,22 +31,22 @@ export function EntityTable<T>({
 }: EntityTableProps<T>) {
   if (!items.length) {
     return (
-      <div className="glass rounded-xl p-8 flex items-center justify-center">
+      <div className="card rounded-xl p-10 flex items-center justify-center">
         <p className="text-foreground-muted text-sm">{emptyMessage}</p>
       </div>
     );
   }
 
   return (
-    <div className="glass rounded-xl overflow-hidden">
+    <div className="card rounded-xl overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-white/5">
+            <tr className="border-b border-border bg-hover">
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`px-4 py-3 text-xs font-medium text-foreground-muted uppercase tracking-wider ${
+                  className={`px-4 py-3 text-[11px] font-medium text-foreground-muted uppercase tracking-wider ${
                     col.align === "right" ? "text-right" : "text-left"
                   }`}
                   style={col.width ? { width: col.width } : undefined}
@@ -64,8 +64,8 @@ export function EntityTable<T>({
                 <tr
                   key={id}
                   onClick={() => onRowClick?.(item)}
-                  className={`border-b border-white/[0.03] transition-colors ${
-                    onRowClick ? "cursor-pointer hover:bg-white/[0.04]" : ""
+                  className={`border-b border-border last:border-0 transition-colors ${
+                    onRowClick ? "cursor-pointer hover:bg-hover" : ""
                   }`}
                 >
                   {columns.map((col) => (
@@ -85,8 +85,6 @@ export function EntityTable<T>({
     </div>
   );
 }
-
-// Reusable column helpers
 
 export function statusColumn<T extends { status: string }>(): Column<T> {
   return {
@@ -111,7 +109,7 @@ export function spendColumn<T>(): Column<T> {
     label: "Spend",
     align: "right",
     render: (_, ins) => (
-      <span className="font-mono text-foreground">{ins ? formatCurrency(ins.spend) : "--"}</span>
+      <span className="font-mono text-foreground tabular-nums">{ins ? formatCurrency(ins.spend) : "—"}</span>
     ),
   };
 }
@@ -122,7 +120,7 @@ export function impressionsColumn<T>(): Column<T> {
     label: "Impr.",
     align: "right",
     render: (_, ins) => (
-      <span className="font-mono text-foreground-muted">{ins ? formatCompact(ins.impressions) : "--"}</span>
+      <span className="font-mono text-foreground-secondary tabular-nums">{ins ? formatCompact(ins.impressions) : "—"}</span>
     ),
   };
 }
@@ -133,7 +131,7 @@ export function clicksColumn<T>(): Column<T> {
     label: "Clicks",
     align: "right",
     render: (_, ins) => (
-      <span className="font-mono text-foreground-muted">{ins ? formatCompact(ins.clicks) : "--"}</span>
+      <span className="font-mono text-foreground-secondary tabular-nums">{ins ? formatCompact(ins.clicks) : "—"}</span>
     ),
   };
 }
@@ -144,7 +142,7 @@ export function ctrColumn<T>(): Column<T> {
     label: "CTR",
     align: "right",
     render: (_, ins) => (
-      <span className="font-mono text-foreground-muted">{ins ? formatPercent(ins.ctr) : "--"}</span>
+      <span className="font-mono text-foreground-secondary tabular-nums">{ins ? formatPercent(ins.ctr) : "—"}</span>
     ),
   };
 }
@@ -155,7 +153,7 @@ export function cpcColumn<T>(): Column<T> {
     label: "CPC",
     align: "right",
     render: (_, ins) => (
-      <span className="font-mono text-foreground-muted">{ins ? formatCurrency(ins.cpc) : "--"}</span>
+      <span className="font-mono text-foreground-secondary tabular-nums">{ins ? formatCurrency(ins.cpc) : "—"}</span>
     ),
   };
 }

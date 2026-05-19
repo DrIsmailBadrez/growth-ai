@@ -38,26 +38,26 @@ export function ActionsBreakdown({ actions, costPerAction }: ActionsBreakdownPro
   const costMap = new Map(costPerAction?.map((c) => [c.action_type, c.value]) ?? []);
 
   return (
-    <div className="glass rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-white/5">
+    <div className="card rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-border">
         <h3 className="text-sm font-medium text-foreground">Actions Breakdown</h3>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-white/5">
-              <th className="text-left px-4 py-2 text-xs font-medium text-foreground-muted uppercase tracking-wider">Action</th>
-              <th className="text-right px-4 py-2 text-xs font-medium text-foreground-muted uppercase tracking-wider">Count</th>
-              <th className="text-right px-4 py-2 text-xs font-medium text-foreground-muted uppercase tracking-wider">Cost</th>
+            <tr className="border-b border-border bg-hover">
+              <th className="text-left px-4 py-2.5 text-[11px] font-medium text-foreground-muted uppercase tracking-wider">Action</th>
+              <th className="text-right px-4 py-2.5 text-[11px] font-medium text-foreground-muted uppercase tracking-wider">Count</th>
+              <th className="text-right px-4 py-2.5 text-[11px] font-medium text-foreground-muted uppercase tracking-wider">Cost</th>
             </tr>
           </thead>
           <tbody>
             {actions.map((action) => (
-              <tr key={action.action_type} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+              <tr key={action.action_type} className="border-b border-border last:border-0 hover:bg-hover transition-colors">
                 <td className="px-4 py-2.5 text-foreground">{formatActionType(action.action_type)}</td>
-                <td className="px-4 py-2.5 text-foreground text-right font-mono">{formatNumber(action.value)}</td>
-                <td className="px-4 py-2.5 text-foreground-muted text-right font-mono">
-                  {costMap.has(action.action_type) ? formatCurrency(costMap.get(action.action_type)!) : "--"}
+                <td className="px-4 py-2.5 text-foreground text-right font-mono tabular-nums">{formatNumber(action.value)}</td>
+                <td className="px-4 py-2.5 text-foreground-secondary text-right font-mono tabular-nums">
+                  {costMap.has(action.action_type) ? formatCurrency(costMap.get(action.action_type)!) : "—"}
                 </td>
               </tr>
             ))}

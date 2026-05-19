@@ -39,11 +39,11 @@ export function formatRanking(ranking?: string): { label: string; color: string 
     return { label: "N/A", color: "text-foreground-muted" };
   }
   const map: Record<string, { label: string; color: string }> = {
-    ABOVE_AVERAGE: { label: "Above Average", color: "text-emerald-400" },
-    AVERAGE: { label: "Average", color: "text-yellow-400" },
-    BELOW_AVERAGE_10: { label: "Below Average (Bottom 10%)", color: "text-orange-400" },
-    BELOW_AVERAGE_20: { label: "Below Average (Bottom 20%)", color: "text-orange-400" },
-    BELOW_AVERAGE_35: { label: "Below Average (Bottom 35%)", color: "text-red-400" },
+    ABOVE_AVERAGE: { label: "Above Average", color: "text-green-600" },
+    AVERAGE: { label: "Average", color: "text-amber-600" },
+    BELOW_AVERAGE_10: { label: "Below Average (Bottom 10%)", color: "text-orange-600" },
+    BELOW_AVERAGE_20: { label: "Below Average (Bottom 20%)", color: "text-orange-600" },
+    BELOW_AVERAGE_35: { label: "Below Average (Bottom 35%)", color: "text-red-600" },
   };
   return map[ranking] ?? { label: ranking.replace(/_/g, " ").toLowerCase(), color: "text-foreground-muted" };
 }
