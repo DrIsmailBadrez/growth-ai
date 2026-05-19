@@ -294,14 +294,14 @@ export const disconnectMeta = tool({
     "Disconnect the currently linked Meta (Facebook) ad account. Clears the stored access token. Use when the user wants to disconnect, switch accounts, or re-authenticate.",
   inputSchema: z.object({}),
   execute: async () => {
-    const token = getMetaToken();
+    const token = await getMetaToken();
     if (!token) {
       return {
         type: "meta_disconnected" as const,
         message: "No Meta account is currently connected.",
       };
     }
-    clearMetaToken();
+    await clearMetaToken();
     return {
       type: "meta_disconnected" as const,
       message: "Meta account has been disconnected. You can now connect a different account.",
